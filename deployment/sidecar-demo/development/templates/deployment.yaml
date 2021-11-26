@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+      - name: {{ .Values.app.name }}
+        image: {{ .Values.app.repository }}:{{ .Values.app.tag }}
+        imagePullPolicy: {{ .Values.app.pullPolicy }}
+        command: ["redis-server", "/etc/redis/redis.conf"]
+        volumeMounts:
+        - name: {{ .Chart.Name }}-config
+          mountPath: "/etc/redis"
+        ports:
+        - containerPort: 6379
+          name: redis
+          protocol: TCP
+      - name: {{ .Values.sidecar_demo.name }}
+        image: {{ .Values.sidecar_demo.repository }}:{{ .Values.sidecar_demo.tag }}
+        imagePullPolicy: {{ .Values.sidecar_demo.pullPolicy }}
+        env:
+        - name: CLOUDANT_APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: sidecar-demo-secret
+              key: CLOUDANT_API_KEY
+        - name: CLOUDANT_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Chart.Name }}-config
+              key: cloudant-replica-db
+      volumes:
+      - name: {{ .Chart.Name }}-config
+        configMap:
+          name: {{.Chart.Name}}-config
+      - name: {{ .Chart.Name }}-secret
+        secret:
+          secretName: sidecar-demo-secret
+  
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0

@@ -1,0 +1,19 @@
+# Default values for redis-private.
+# This is a YAML-formatted file.
+# Declare variable to be passed into your templates.
+
+replicas: 1
+#namespace: sidecar-demo
+
+app:
+  name: redis
+  repository: us.icr.io/sidecar/redis
+  tag: v1.0.0
+  pullPolicy: Always
+
+sidecar_demo:
+  name: sidecar-demo
+  repository: us.icr.io/sidecar/sidecar-demo
+  cloudantReplicaDB: sidecar-demo
+  pullPolicy: Always
+  tag: v1.0.0
